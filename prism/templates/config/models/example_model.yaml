@@ -1,0 +1,60 @@
+model_id: example_model
+model_name: "Example Model"
+model_owner: "team-example"
+
+metrics:
+  rank_ordering:
+    sector: discriminatory_power
+    metric_id: gini_coefficient
+    source: local
+    inputs:
+      segment: "all"
+    color_field: "gini_value"
+    color:
+      green: ">= 0.4"
+      yellow: ">= 0.3"
+      red: "< 0.3"
+
+  accuracy:
+    sector: discriminatory_power
+    metric_id: model_accuracy
+    source: local
+    inputs:
+      method: "auc"
+    color_field: "auc_value"
+    color:
+      green: ">= 0.85"
+      yellow: ">= 0.75"
+      red: "< 0.75"
+
+  psi:
+    sector: stability
+    metric_id: psi_calculator
+    source: local
+    inputs:
+      reference_period: "2024-Q1"
+    color_field: "psi_value"
+    color:
+      green: "< 0.1"
+      yellow: "< 0.25"
+      red: ">= 0.25"
+
+aggregation:
+  sector:
+    method: worst_color
+  final:
+    method: matrix
+    dimensions: [discriminatory_power, stability]
+    matrix:
+      green:
+        green: green
+        yellow: yellow
+        red: red
+      yellow:
+        green: yellow
+        yellow: yellow
+        red: red
+      red:
+        green: red
+        yellow: red
+        red: red

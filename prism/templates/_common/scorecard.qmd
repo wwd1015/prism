@@ -1,0 +1,7 @@
+## Scorecard
+
+```{python}
+#| output: asis
+#| echo: false
+report.scorecard()
+```

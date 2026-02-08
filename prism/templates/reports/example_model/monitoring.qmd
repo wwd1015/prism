@@ -1,0 +1,21 @@
+---
+title: "Model Monitoring Report"
+params:
+  model_id: "example_model"
+  report_date: ""
+format:
+  html:
+    toc: true
+    theme: cosmo
+  pdf:
+    toc: true
+  revealjs:
+    slide-level: 2
+---
+
+{{< include ../../_common/setup.qmd >}}
+{{< include ../../_common/header.qmd >}}
+{{< include ../../_common/scorecard.qmd >}}
+{{< include ../../_common/rank_ordering.qmd >}}
+{{< include ../../_common/accuracy.qmd >}}
+{{< include ../../_common/footer.qmd >}}

@@ -1,0 +1,17 @@
+project:
+  type: default
+  output-dir: _output
+
+format:
+  html:
+    toc: true
+    theme: cosmo
+    css: []
+  pdf:
+    toc: true
+  revealjs:
+    slide-level: 2
+
+execute:
+  echo: false
+  warning: false

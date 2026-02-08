@@ -1,0 +1,4 @@
+output_dir: _output
+default_format: html
+reports_dir: reports
+config_dir: config

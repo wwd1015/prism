@@ -1,0 +1,20 @@
+## Rank Ordering
+
+```{python}
+#| output: asis
+#| echo: false
+report.section_header("rank_ordering")
+```
+
+```{python}
+#| echo: false
+result = report.metric("rank_ordering")
+report.table(result["summary"])
+```
+
+```{python}
+#| echo: false
+result = report.metric("rank_ordering")
+if result.get("lorenz_chart"):
+    result["lorenz_chart"]
+```

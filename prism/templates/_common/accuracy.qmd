@@ -1,0 +1,30 @@
+## Accuracy
+
+```{python}
+#| output: asis
+#| echo: false
+report.section_header("accuracy")
+```
+
+```{python}
+#| echo: false
+result = report.metric("accuracy")
+report.table(
+    result.get("summary", pd.DataFrame({
+        "Metric": ["AUC", "Accuracy", "Precision", "Recall"],
+        "Value": [
+            result.get("auc_value"),
+            result.get("accuracy_value"),
+            result.get("precision_value"),
+            result.get("recall_value"),
+        ],
+    }))
+)
+```
+
+```{python}
+#| echo: false
+result = report.metric("accuracy")
+if result.get("roc_chart"):
+    result["roc_chart"]
+```
