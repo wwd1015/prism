@@ -1,0 +1,31 @@
+```{python}
+#| output: asis
+#| echo: false
+print(report.section_header("psi"))
+```
+
+```{python}
+#| output: asis
+#| echo: false
+print(metric_intro("psi",
+    "The Population Stability Index (PSI) measures how much the current score "
+    "distribution has shifted from the reference (development or baseline) "
+    "population. A low PSI indicates the model inputs and outputs remain "
+    "stable over time. Significant shifts may signal data drift or changes "
+    "in the underlying population that warrant further investigation."
+))
+```
+
+```{python}
+#| echo: false
+result = report.metric("psi")
+fig = result.get("psi_chart")
+if fig:
+    fig.show()
+```
+
+```{python}
+#| output: asis
+#| echo: false
+print(report.commentary("psi"))
+```

@@ -1,0 +1,31 @@
+```{python}
+#| output: asis
+#| echo: false
+print(report.section_header("accuracy"))
+```
+
+```{python}
+#| output: asis
+#| echo: false
+print(metric_intro("accuracy",
+    "The backtesting accuracy metric evaluates how well the model's predicted "
+    "probabilities align with observed outcomes. The AUC (Area Under the ROC "
+    "Curve) measures the probability that the model ranks a randomly chosen "
+    "event higher than a randomly chosen non-event. This is assessed against "
+    "model-specific thresholds agreed upon during the last model validation."
+))
+```
+
+```{python}
+#| echo: false
+result = report.metric("accuracy")
+fig = result.get("roc_chart")
+if fig:
+    fig.show()
+```
+
+```{python}
+#| output: asis
+#| echo: false
+print(report.commentary("accuracy"))
+```

@@ -1,0 +1,72 @@
+model_id: credit_risk_model
+model_name: "Credit Risk Model v2.1"
+model_owner: "Model Risk Team"
+tags: [credit, retail]
+
+metrics:
+  rank_ordering:
+    sector: discriminatory_power
+    metric_id: gini_coefficient
+    source: local
+    inputs:
+      segment: "all"
+    color_field: "gini_value"
+    color:
+      green: ">= 0.4"
+      yellow: ">= 0.3"
+      red: "< 0.3"
+
+  accuracy:
+    sector: backtesting
+    metric_id: model_accuracy
+    source: local
+    inputs:
+      method: "auc"
+    color_field: "auc_value"
+    color:
+      green: ">= 0.85"
+      yellow: ">= 0.75"
+      red: "< 0.75"
+
+  psi:
+    sector: stability
+    metric_id: psi_calculator
+    source: local
+    inputs: {}
+    color_field: "psi_value"
+    color:
+      green: "< 0.1"
+      yellow: "< 0.25"
+      red: ">= 0.25"
+
+  # --- Informational metrics (not included in final model color) ---
+  ks_statistic:
+    sector: informational
+    metric_id: ks_statistic
+    source: local
+    inputs: {}
+    color_field: "ks_value"
+    color:
+      green: ">= 0.4"
+      yellow: ">= 0.3"
+      red: "< 0.3"
+
+aggregation:
+  sector:
+    method: worst_color
+  final:
+    method: matrix
+    dimensions: [discriminatory_power, backtesting, stability]
+    matrix:
+      green:
+        green: green
+        yellow: yellow
+        red: red
+      yellow:
+        green: yellow
+        yellow: yellow
+        red: red
+      red:
+        green: red
+        yellow: red
+        red: red

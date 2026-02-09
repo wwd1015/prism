@@ -1,0 +1,77 @@
+### Data Overview
+
+```{python}
+#| output: asis
+#| echo: false
+import pandas as pd
+
+# Compute summary statistics directly from data — no metric pipeline needed
+period_summary = (
+    data.groupby("period")
+    .agg(
+        records=("actual", "count"),
+        event_rate=("actual", "mean"),
+        avg_score=("predicted", "mean"),
+        median_score=("predicted", "median"),
+        std_score=("predicted", "std"),
+    )
+    .reset_index()
+    .sort_values("period")
+)
+
+print("This section provides a summary of the input data by period. "
+      "It is purely informational and does not carry a RAG status.")
+print()
+print(report.table(period_summary))
+```
+
+```{python}
+#| echo: false
+import plotly.graph_objects as go
+
+fig = go.Figure()
+fig.add_trace(go.Bar(
+    x=period_summary["period"],
+    y=period_summary["records"],
+    name="Records",
+    marker_color="#4e79a7",
+))
+fig.add_trace(go.Scatter(
+    x=period_summary["period"],
+    y=period_summary["event_rate"],
+    name="Event Rate",
+    yaxis="y2",
+    mode="lines+markers",
+    marker_color="#e15759",
+))
+fig.update_layout(
+    title="Records & Event Rate by Period",
+    xaxis_title="Period",
+    yaxis_title="Record Count",
+    yaxis2=dict(
+        title="Event Rate",
+        overlaying="y",
+        side="right",
+        tickformat=".1%",
+    ),
+    barmode="group",
+    legend=dict(x=0.01, y=0.99),
+)
+fig.show()
+```
+
+```{python}
+#| echo: false
+import plotly.express as px
+
+fig = px.histogram(
+    data,
+    x="predicted",
+    nbins=30,
+    title="Score Distribution",
+    labels={"predicted": "Predicted Score", "count": "Frequency"},
+    color_discrete_sequence=["#4e79a7"],
+)
+fig.update_layout(yaxis_title="Frequency")
+fig.show()
+```

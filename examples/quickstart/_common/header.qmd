@@ -1,0 +1,12 @@
+```{python}
+#| output: asis
+#| echo: false
+
+color = report.final_color()
+badge = report.badge(color)
+print(f"## {report.model_name} — {badge} {{.unlisted}}")
+print()
+print(f"**Report Date:** {report.report_date} &nbsp;|&nbsp; **Model ID:** `{report.model_id}`")
+print()
+print("---")
+```

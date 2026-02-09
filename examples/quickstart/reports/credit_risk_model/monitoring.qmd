@@ -1,0 +1,26 @@
+---
+title: "Model Monitoring Report"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: true
+    theme: cosmo
+---
+
+{{< include ../../_common/setup.qmd >}}
+{{< include ../../_common/header.qmd >}}
+{{< include ../../_common/scorecard.qmd >}}
+
+## Metric Details
+
+{{< include ../../_common/rank_ordering.qmd >}}
+{{< include ../../_common/accuracy.qmd >}}
+{{< include ../../_common/stability.qmd >}}
+
+## Informational
+
+{{< include ../../_common/ks_statistic.qmd >}}
+{{< include ../../_common/data_overview.qmd >}}
+
+{{< include ../../_common/footer.qmd >}}

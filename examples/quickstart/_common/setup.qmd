@@ -1,0 +1,63 @@
+```{python}
+#| label: parameters
+#| tags: [parameters]
+#| include: false
+
+# Default parameters — overridden by Quarto CLI: quarto render ... -P model_id:my_model
+model_id = "credit_risk_model"
+report_date = ""
+```
+
+```{python}
+#| label: setup
+#| include: false
+
+import pandas as pd
+from pathlib import Path
+from prism import Report, format_badge
+
+# Find project root by walking up to the directory containing _quarto.yml
+project_root = Path.cwd()
+while project_root != project_root.parent:
+    if (project_root / "_quarto.yml").exists():
+        break
+    project_root = project_root.parent
+
+# Load sample data from CSV
+data_path = project_root / "data" / "sample_scores.csv"
+data = pd.read_csv(data_path)
+
+# Resolve commentary file path
+commentary_path = project_root / "config" / "commentary.xlsx"
+
+# Phase 1: Initialize and PRE-COMPUTE everything
+report = Report(
+    model_id=model_id,
+    report_date=report_date,
+    config_dir=str(project_root / "config"),
+    commentary_file=str(commentary_path),
+)
+report.compute_all(data=data)
+
+
+def metric_intro(key, background):
+    """Format metric background, intent, thresholds, and current value."""
+    mcfg = report.config["metrics"][key]
+    thresholds = mcfg["color"]
+    value = report.metric_value(key)
+    color = report.metric_color(key)
+    badge = report.badge(color)
+
+    lines = [background, ""]
+    lines.append("| Status | Threshold |")
+    lines.append("|--------|-----------|")
+    for c in ("green", "yellow", "red"):
+        if c in thresholds:
+            lines.append(f"| {format_badge(c)} | `{thresholds[c]}` |")
+    lines.append("")
+    if isinstance(value, float):
+        lines.append(f"**Current Value:** `{value:.4f}` {badge}")
+    else:
+        lines.append(f"**Current Value:** `{value}` {badge}")
+    return "\n".join(lines)
+```

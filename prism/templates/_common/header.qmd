@@ -1,5 +1,5 @@
 ```{python}
 #| output: asis
 #| echo: false
-report.header()
+print(report.header())
 ```

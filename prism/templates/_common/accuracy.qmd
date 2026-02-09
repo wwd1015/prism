@@ -3,13 +3,15 @@
 ```{python}
 #| output: asis
 #| echo: false
-report.section_header("accuracy")
+print(report.section_header("accuracy"))
 ```
 
 ```{python}
+#| output: asis
 #| echo: false
+import pandas as pd
 result = report.metric("accuracy")
-report.table(
+print(report.table(
     result.get("summary", pd.DataFrame({
         "Metric": ["AUC", "Accuracy", "Precision", "Recall"],
         "Value": [
@@ -19,18 +21,19 @@ report.table(
             result.get("recall_value"),
         ],
     }))
-)
+))
 ```
 
 ```{python}
 #| echo: false
 result = report.metric("accuracy")
-if result.get("roc_chart"):
-    result["roc_chart"]
+fig = result.get("roc_chart")
+if fig:
+    fig.show()
 ```
 
 ```{python}
 #| output: asis
 #| echo: false
-report.commentary("accuracy")
+print(report.commentary("accuracy"))
 ```

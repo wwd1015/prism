@@ -1,0 +1,24 @@
+```{python}
+#| output: asis
+#| echo: false
+print(report.section_header("ks_statistic"))
+```
+
+```{python}
+#| output: asis
+#| echo: false
+print(metric_intro("ks_statistic",
+    "The Kolmogorov-Smirnov (KS) statistic measures the maximum separation "
+    "between the cumulative distributions of events and non-events. It "
+    "indicates the score threshold at which the model achieves the greatest "
+    "distinction. This metric is reported for informational purposes and "
+    "does not contribute to the overall model rating."
+))
+```
+
+```{python}
+#| output: asis
+#| echo: false
+result = report.metric("ks_statistic")
+print(report.table(result["ks_table"]))
+```
