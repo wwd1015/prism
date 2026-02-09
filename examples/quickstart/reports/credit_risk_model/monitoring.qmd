@@ -6,6 +6,7 @@ format:
     toc-depth: 3
     toc-expand: true
     theme: cosmo
+    embed-resources: true
 ---
 
 {{< include ../../_common/setup.qmd >}}
