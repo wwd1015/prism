@@ -161,6 +161,35 @@ def format_scorecard(
     return "\n".join(lines)
 
 
+def format_commentary(
+    text: str, author: str | None = None, date: str | None = None
+) -> str:
+    """Render MD commentary as a Quarto callout block.
+
+    Args:
+        text: The commentary text from the MD.
+        author: Optional author name.
+        date: Optional date string.
+
+    Returns:
+        Quarto callout block string (renders as a styled box in HTML/PDF).
+    """
+    attribution_parts = []
+    if author:
+        attribution_parts.append(f"**{author}**")
+    if date:
+        attribution_parts.append(str(date))
+    attribution = " — ".join(attribution_parts)
+
+    lines = ["", ":::{.callout-note title=\"MD Commentary\"}", ""]
+    lines.append(text)
+    if attribution:
+        lines.append("")
+        lines.append(f"*— {attribution}*")
+    lines.extend(["", ":::", ""])
+    return "\n".join(lines)
+
+
 def format_delta(current: float, previous: float, fmt: str = "pct") -> str:
     """Render a change indicator: arrow + formatted delta.
 

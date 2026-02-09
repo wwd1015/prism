@@ -5,8 +5,12 @@
 from prism import Report
 
 # Phase 1: Initialize and PRE-COMPUTE everything
-report = Report(model_id=params["model_id"], report_date=params.get("report_date", ""))
+report = Report(
+    model_id=params["model_id"],
+    report_date=params.get("report_date", ""),
+    commentary_file=params.get("commentary_file"),
+)
 report.compute_all(data=data)
 # After this line, ALL metrics are cached, ALL colors are computed.
-# scorecard(), header(), final_color() etc. are all ready to render.
+# scorecard(), header(), final_color(), commentary() are all ready.
 ```

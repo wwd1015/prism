@@ -18,3 +18,9 @@ result = report.metric("rank_ordering")
 if result.get("lorenz_chart"):
     result["lorenz_chart"]
 ```
+
+```{python}
+#| output: asis
+#| echo: false
+report.commentary("rank_ordering")
+```

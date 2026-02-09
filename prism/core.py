@@ -16,7 +16,7 @@ import pandas as pd
 import yaml
 
 from prism.colors import compute_all_colors, evaluate_color
-from prism.helpers import format_badge, format_scorecard, format_table
+from prism.helpers import format_badge, format_commentary, format_scorecard, format_table
 from prism.resolver import MetricResolver
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,7 @@ class Report:
         model_id: str,
         report_date: str | None = None,
         config_dir: str = "config",
+        commentary_file: str | Path | None = None,
     ):
         self.model_id = model_id
         self.report_date = report_date or date.today().isoformat()
@@ -75,7 +76,69 @@ class Report:
         self.resolver = MetricResolver()
         self._results: dict[str, dict[str, Any]] = {}
         self._colors: dict[str, Any] = {}
+        self._commentary: dict[str, dict[str, str]] = {}
         self._computed = False
+
+        if commentary_file:
+            self._load_commentary(Path(commentary_file))
+
+    def _load_commentary(self, filepath: Path) -> None:
+        """Load MD commentary from an Excel spreadsheet.
+
+        Expects one tab per model (tab name = model_id). Each tab must have
+        at least a ``metric_key`` column and a ``commentary`` column.
+        Optional columns: ``author``, ``date``.
+
+        Args:
+            filepath: Path to the .xlsx commentary file.
+        """
+        if not filepath.exists():
+            logger.warning(f"Commentary file not found: {filepath}")
+            return
+
+        try:
+            sheets = pd.ExcelFile(filepath).sheet_names
+        except Exception:
+            logger.exception(f"Failed to open commentary file: {filepath}")
+            return
+
+        if self.model_id not in sheets:
+            logger.info(
+                f"No commentary tab for model {self.model_id!r} in {filepath}"
+            )
+            return
+
+        try:
+            df = pd.read_excel(filepath, sheet_name=self.model_id)
+        except Exception:
+            logger.exception(
+                f"Failed to read tab {self.model_id!r} from {filepath}"
+            )
+            return
+
+        if "metric_key" not in df.columns or "commentary" not in df.columns:
+            logger.warning(
+                f"Commentary tab {self.model_id!r} missing required columns "
+                f"(metric_key, commentary). Found: {list(df.columns)}"
+            )
+            return
+
+        for _, row in df.iterrows():
+            key = str(row["metric_key"]).strip()
+            text = str(row["commentary"]).strip()
+            if not key or not text or text == "nan":
+                continue
+            entry: dict[str, str] = {"text": text}
+            if "author" in df.columns and pd.notna(row.get("author")):
+                entry["author"] = str(row["author"]).strip()
+            if "date" in df.columns and pd.notna(row.get("date")):
+                entry["date"] = str(row["date"]).strip()
+            self._commentary[key] = entry
+
+        logger.info(
+            f"Loaded commentary for {len(self._commentary)} metrics "
+            f"(model={self.model_id!r})"
+        )
 
     def compute_all(self, data: pd.DataFrame | None = None, **extra_data: Any) -> None:
         """Pre-compute all metrics and colors.
@@ -168,6 +231,24 @@ class Report:
         """Get the cached final model color (layer 2 matrix aggregation)."""
         self._ensure_computed()
         return self._colors.get("final", "green")
+
+    def commentary(self, metric_key: str) -> str:
+        """Return formatted MD commentary for a metric, or empty string.
+
+        Args:
+            metric_key: The key from the YAML config (e.g. "rank_ordering").
+
+        Returns:
+            Quarto callout block string if commentary exists, else "".
+        """
+        entry = self._commentary.get(metric_key)
+        if not entry:
+            return ""
+        return format_commentary(
+            text=entry["text"],
+            author=entry.get("author"),
+            date=entry.get("date"),
+        )
 
     # --- Rendering Helpers ---
 

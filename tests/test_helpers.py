@@ -5,6 +5,7 @@ import pytest
 
 from prism.helpers import (
     format_badge,
+    format_commentary,
     format_delta,
     format_kpi,
     format_scorecard,
@@ -95,6 +96,28 @@ class TestFormatScorecard:
         result = format_scorecard(metrics_data, {"s1": "green"}, "green")
         # None value should show as dash
         assert "\u2014" in result  # em-dash
+
+
+class TestFormatCommentary:
+    def test_basic(self):
+        result = format_commentary("Gini dropped due to portfolio shift.")
+        assert ":::{.callout-note" in result
+        assert "Gini dropped due to portfolio shift." in result
+        assert ":::" in result
+
+    def test_with_author(self):
+        result = format_commentary("Looks good.", author="J. Smith")
+        assert "J. Smith" in result
+
+    def test_with_author_and_date(self):
+        result = format_commentary("No action.", author="A. Lee", date="2025-01-15")
+        assert "A. Lee" in result
+        assert "2025-01-15" in result
+
+    def test_no_attribution(self):
+        result = format_commentary("Just a note.")
+        # Should not contain attribution line
+        assert "*—" not in result
 
 
 class TestFormatDelta:

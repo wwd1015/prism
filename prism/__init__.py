@@ -10,7 +10,7 @@ Public API:
 
 from prism.colors import evaluate_color
 from prism.core import Report
-from prism.helpers import format_badge, format_table
+from prism.helpers import format_badge, format_commentary, format_table
 from prism.resolver import MetricResolver
 
 # Trigger metric registration on import
@@ -21,5 +21,6 @@ __all__ = [
     "MetricResolver",
     "evaluate_color",
     "format_badge",
+    "format_commentary",
     "format_table",
 ]

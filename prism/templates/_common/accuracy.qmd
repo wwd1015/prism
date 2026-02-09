@@ -28,3 +28,9 @@ result = report.metric("accuracy")
 if result.get("roc_chart"):
     result["roc_chart"]
 ```
+
+```{python}
+#| output: asis
+#| echo: false
+report.commentary("accuracy")
+```

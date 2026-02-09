@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import yaml
+from openpyxl import Workbook
 
 from prism.core import Report, load_model_config
 
@@ -170,3 +171,80 @@ class TestReport:
         r.compute_all(data=sample_data)
         with pytest.raises(KeyError, match="not found"):
             r.metric("nonexistent_metric")
+
+
+def _create_commentary_xlsx(path, model_id, rows):
+    """Helper to create a commentary Excel file for tests."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = model_id
+    headers = ["metric_key", "commentary", "author", "date"]
+    ws.append(headers)
+    for row in rows:
+        ws.append([row.get(h, "") for h in headers])
+    wb.save(path)
+
+
+class TestCommentary:
+    def test_loads_commentary(self, config_dir, sample_data, tmp_path):
+        xlsx = tmp_path / "commentary.xlsx"
+        _create_commentary_xlsx(xlsx, "test_model", [
+            {"metric_key": "rank_ordering", "commentary": "Gini looks fine.", "author": "J. Smith", "date": "2025-01-15"},
+            {"metric_key": "accuracy", "commentary": "AUC within tolerance.", "author": "A. Lee"},
+        ])
+        r = Report("test_model", config_dir=str(config_dir), commentary_file=str(xlsx))
+        r.compute_all(data=sample_data)
+
+        c = r.commentary("rank_ordering")
+        assert "Gini looks fine." in c
+        assert "J. Smith" in c
+        assert "2025-01-15" in c
+        assert ":::{.callout-note" in c
+
+    def test_commentary_with_author_no_date(self, config_dir, sample_data, tmp_path):
+        xlsx = tmp_path / "commentary.xlsx"
+        _create_commentary_xlsx(xlsx, "test_model", [
+            {"metric_key": "accuracy", "commentary": "AUC within tolerance.", "author": "A. Lee"},
+        ])
+        r = Report("test_model", config_dir=str(config_dir), commentary_file=str(xlsx))
+        r.compute_all(data=sample_data)
+
+        c = r.commentary("accuracy")
+        assert "AUC within tolerance." in c
+        assert "A. Lee" in c
+
+    def test_no_commentary_returns_empty(self, config_dir, sample_data, tmp_path):
+        xlsx = tmp_path / "commentary.xlsx"
+        _create_commentary_xlsx(xlsx, "test_model", [
+            {"metric_key": "rank_ordering", "commentary": "Some note."},
+        ])
+        r = Report("test_model", config_dir=str(config_dir), commentary_file=str(xlsx))
+        r.compute_all(data=sample_data)
+
+        # No commentary for accuracy
+        assert r.commentary("accuracy") == ""
+
+    def test_missing_tab_graceful(self, config_dir, sample_data, tmp_path):
+        xlsx = tmp_path / "commentary.xlsx"
+        # Create with a different model_id tab
+        _create_commentary_xlsx(xlsx, "other_model", [
+            {"metric_key": "rank_ordering", "commentary": "Note."},
+        ])
+        r = Report("test_model", config_dir=str(config_dir), commentary_file=str(xlsx))
+        r.compute_all(data=sample_data)
+
+        assert r.commentary("rank_ordering") == ""
+
+    def test_missing_file_graceful(self, config_dir, sample_data, tmp_path):
+        xlsx = tmp_path / "nonexistent.xlsx"
+        r = Report("test_model", config_dir=str(config_dir), commentary_file=str(xlsx))
+        r.compute_all(data=sample_data)
+
+        assert r.commentary("rank_ordering") == ""
+
+    def test_no_commentary_file(self, config_dir, sample_data):
+        r = Report("test_model", config_dir=str(config_dir))
+        r.compute_all(data=sample_data)
+
+        # Should return empty string, no errors
+        assert r.commentary("rank_ordering") == ""

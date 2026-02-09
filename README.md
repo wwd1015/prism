@@ -30,7 +30,8 @@ prism render revenue_predictor
 ```python
 from prism import Report
 
-report = Report(model_id="model_a", config_dir="config")
+report = Report(model_id="model_a", config_dir="config",
+                commentary_file="path/to/commentary.xlsx")
 report.compute_all(data=df)
 
 # All metrics are now cached — use anywhere in the report:
@@ -38,6 +39,7 @@ report.header()                      # Model name + final RAG badge
 report.scorecard()                   # Full metric scorecard table
 report.metric("rank_ordering")       # Cached metric result dict
 report.metric_color("rank_ordering") # "green", "yellow", or "red"
+report.commentary("rank_ordering")   # MD commentary callout (or "")
 report.final_color()                 # Overall model color
 ```
 
@@ -69,6 +71,65 @@ Each model has a YAML config (`config/models/<model_id>.yaml`) specifying:
 | `precision_recall` | Precision, recall, F1 at threshold |
 | `psi_calculator` | Population Stability Index |
 | `csi_calculator` | Characteristic Stability Index |
+
+## MD Commentary
+
+PRISM supports embedding Model Developer (MD) commentary alongside each metric in the final report. Commentary is maintained in a single Excel spreadsheet outside of PRISM — MDs fill it in, and PRISM picks it up at render time.
+
+### Creating the Commentary File
+
+Create an `.xlsx` file (e.g. `commentary.xlsx`) with **one tab per model**. The tab name must match the `model_id` exactly (e.g. a tab named `revenue_predictor` for model ID `revenue_predictor`).
+
+Each tab should have the following columns:
+
+| Column | Required | Description |
+|--------|----------|-------------|
+| `metric_key` | Yes | Must match the metric key in the model's YAML config (e.g. `rank_ordering`, `accuracy`, `psi`) |
+| `commentary` | Yes | The MD's written interpretation or commentary for this metric |
+| `author` | No | Name of the person who wrote the commentary |
+| `date` | No | Date the commentary was written (any text format, e.g. `2025-01-15`) |
+
+**Example spreadsheet layout** (tab: `revenue_predictor`):
+
+| metric_key | commentary | author | date |
+|---|---|---|---|
+| rank_ordering | Gini coefficient declined from 0.52 to 0.45 due to portfolio composition shift in Q3. Will monitor for another quarter before recommending recalibration. | J. Smith | 2025-01-15 |
+| accuracy | AUC remains within tolerance at 0.87. No action required. | J. Smith | 2025-01-15 |
+| psi | PSI stable at 0.04. Population distribution unchanged. | A. Lee | 2025-01-20 |
+
+Metrics without a row in the spreadsheet will simply have no commentary box in the report — this is fine and expected. You only need to add rows for metrics where commentary is relevant.
+
+### Connecting the File to PRISM
+
+Pass the path to your commentary file when creating a `Report`:
+
+```python
+report = Report(
+    model_id="revenue_predictor",
+    config_dir="config",
+    commentary_file="path/to/commentary.xlsx",
+)
+```
+
+Or, if using the default Quarto template, set `commentary_file` in your report parameters:
+
+```yaml
+params:
+  model_id: "revenue_predictor"
+  commentary_file: "path/to/commentary.xlsx"
+```
+
+### How It Renders
+
+Commentary appears as a styled callout block after each metric's tables and charts:
+
+> **MD Commentary**
+>
+> Gini coefficient declined from 0.52 to 0.45 due to portfolio composition shift in Q3. Will monitor for another quarter before recommending recalibration.
+>
+> *— J. Smith — 2025-01-15*
+
+If no commentary file is provided, or if a metric has no entry, the report renders normally with no empty boxes or errors.
 
 ## CAP Integration
 
