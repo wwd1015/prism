@@ -45,7 +45,7 @@ quarto --version
 
 ### Python dependencies
 
-PRISM requires Python 3.10+ and the following packages (installed automatically):
+PRISM requires Python 3.11+ and the following packages (installed automatically):
 
 | Package | Purpose |
 |---------|---------|

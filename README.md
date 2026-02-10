@@ -31,7 +31,8 @@ prism render revenue_predictor
 from prism import Report
 
 report = Report(model_id="model_a", config_dir="config",
-                commentary_file="path/to/commentary.xlsx")
+                commentary_file="path/to/commentary.xlsx",
+                connector=None)  # optional SnowflakeConnector
 report.compute_all(data=df)
 
 # All metrics are now cached — use anywhere in the report:
@@ -131,9 +132,23 @@ Commentary appears as a styled callout block after each metric's tables and char
 
 If no commentary file is provided, or if a metric has no entry, the report renders normally with no empty boxes or errors.
 
+## Snowflake Connector
+
+PRISM includes a reusable `SnowflakeConnector` for database access. It connects lazily on first query and defaults to environment variables (`SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, etc.):
+
+```python
+from prism import Report, SnowflakeConnector
+
+with SnowflakeConnector() as conn:
+    report = Report(model_id="model_a", connector=conn)
+    report.compute_all(data=df)
+```
+
+Install the optional dependency: `pip install prism[snowflake]`
+
 ## CAP Integration
 
-PRISM works standalone with built-in metrics. When CAP becomes available, switch `source: local` to `source: cap` in your YAML config — no report code changes needed.
+PRISM works standalone with built-in metrics. When CAP becomes available, switch `source: local` to `source: cap` in your YAML config — no report code changes needed. The `connector` parameter flows through automatically to CAP metric calls.
 
 ## Development
 

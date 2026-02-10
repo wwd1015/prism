@@ -18,11 +18,12 @@ PRISM is a Python package that generates shareable model monitoring reports (HTM
 
 ```
 prism/
-├── __init__.py          # Public API: Report, MetricResolver, evaluate_color, format_badge, format_table
+├── __init__.py          # Public API: Report, MetricResolver, SnowflakeConnector, evaluate_color, format_badge, format_table, format_commentary
 ├── core.py              # Report class — config loading, compute_all(), cached accessors, rendering helpers
-├── resolver.py          # MetricResolver — routes to local or CAP backend
+├── connector.py         # SnowflakeConnector — lazy Snowflake connection with env var defaults
+├── resolver.py          # MetricResolver — routes to local or CAP backend, injects connector
 ├── colors.py            # RAG thresholds, sector aggregation, matrix aggregation, compute_all_colors
-├── helpers.py           # format_table, format_badge, format_kpi, format_scorecard, format_delta
+├── helpers.py           # format_table, format_badge, format_kpi, format_scorecard, format_delta, format_commentary
 ├── runner.py            # Quarto rendering orchestration (single + batch)
 ├── cli.py               # Click CLI: init, add-model, render, render-all, list, validate, preview
 ├── metrics/
@@ -45,14 +46,15 @@ prism/
 
 ```bash
 pip3 install -e ".[dev]"
-python3 -m pytest tests/ -v     # 71 tests
+python3 -m pytest tests/ -v     # 92 tests
 prism --help                    # CLI commands
 prism init my-project           # Scaffold a new report project
 ```
 
 ## Dependencies
 
-- Runtime: pyyaml, click, pandas, plotly, tabulate
+- Runtime: pyyaml, click, pandas, plotly, tabulate, openpyxl
 - External: Quarto CLI must be on PATH for rendering
 - Optional: `cap` package for CAP-sourced metrics
+- Optional: `snowflake-connector-python` for SnowflakeConnector
 - Dev: pytest, pytest-cov
