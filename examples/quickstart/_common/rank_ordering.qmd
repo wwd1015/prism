@@ -20,7 +20,7 @@ print(metric_intro("rank_ordering",
 result = report.metric("rank_ordering")
 fig = result.get("lorenz_chart")
 if fig:
-    fig.show()
+    show_chart(fig)
 ```
 
 ```{python}

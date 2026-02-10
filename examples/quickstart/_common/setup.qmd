@@ -14,7 +14,23 @@ report_date = ""
 
 import pandas as pd
 from pathlib import Path
+from IPython.display import HTML, display
 from prism import Report, format_badge
+
+
+def show_chart(fig, height=450):
+    """Display a Plotly figure without embedding the full plotly.js library.
+
+    plotly.js is loaded once by the plotly-loader cell below.
+    Each chart is just a small data div, keeping the HTML small.
+    """
+    html = fig.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        default_height=f"{height}px",
+        default_width="100%",
+    )
+    display(HTML(html))
 
 # Find project root by walking up to the directory containing _quarto.yml
 project_root = Path.cwd()
@@ -60,4 +76,14 @@ def metric_intro(key, background):
     else:
         lines.append(f"**Current Value:** `{value}` {badge}")
     return "\n".join(lines)
+```
+
+```{python}
+#| label: plotly-loader
+#| echo: false
+# Load plotly.js once — all show_chart() calls reference this global library.
+import plotly
+_plotly_js = (Path(plotly.__file__).parent / "package_data" / "plotly.min.js").read_text()
+display(HTML(f'<script type="text/javascript">{_plotly_js}</script>'))
+del _plotly_js
 ```

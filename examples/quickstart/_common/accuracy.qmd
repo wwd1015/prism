@@ -21,7 +21,7 @@ print(metric_intro("accuracy",
 result = report.metric("accuracy")
 fig = result.get("roc_chart")
 if fig:
-    fig.show()
+    show_chart(fig)
 ```
 
 ```{python}

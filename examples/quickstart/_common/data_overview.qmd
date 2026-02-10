@@ -57,7 +57,7 @@ fig.update_layout(
     barmode="group",
     legend=dict(x=0.01, y=0.99),
 )
-fig.show()
+show_chart(fig)
 ```
 
 ```{python}
@@ -73,5 +73,5 @@ fig = px.histogram(
     color_discrete_sequence=["#4e79a7"],
 )
 fig.update_layout(yaxis_title="Frequency")
-fig.show()
+show_chart(fig)
 ```
