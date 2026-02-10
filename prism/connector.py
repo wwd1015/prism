@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
+from typing import Any, Mapping, Sequence, Union
 
 import pandas as pd
 
@@ -42,20 +42,25 @@ class SnowflakeConnector:
         self.role = role or os.environ.get("SNOWFLAKE_ROLE", "")
         self._connection: Any = None
 
-    def _connect(self) -> Any:
-        """Create Snowflake connection on first use."""
-        if self._connection is not None:
-            return self._connection
-
+    def _get_snowflake_module(self) -> Any:
+        """Import and return the snowflake.connector module."""
         try:
             import snowflake.connector
+
+            return snowflake.connector
         except ImportError:
             raise ImportError(
                 "snowflake-connector-python is required for SnowflakeConnector. "
                 "Install it with: pip install snowflake-connector-python"
             )
 
-        self._connection = snowflake.connector.connect(
+    def _connect(self) -> Any:
+        """Create or return an active Snowflake connection."""
+        if self._connection is not None and not self._connection.is_closed():
+            return self._connection
+
+        sf = self._get_snowflake_module()
+        self._connection = sf.connect(
             account=self.account,
             user=self.user,
             password=self.password,
@@ -67,12 +72,16 @@ class SnowflakeConnector:
         logger.info("Snowflake connection established")
         return self._connection
 
-    def query(self, sql: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
+    def query(
+        self,
+        sql: str,
+        params: Union[Mapping[str, Any], Sequence[Any], None] = None,
+    ) -> pd.DataFrame:
         """Execute SQL and return results as a DataFrame.
 
         Args:
             sql: SQL query string.
-            params: Optional bind parameters.
+            params: Optional bind parameters (dict for named, sequence for positional).
 
         Returns:
             Query results as a pandas DataFrame.
@@ -81,6 +90,8 @@ class SnowflakeConnector:
         cursor = conn.cursor()
         try:
             cursor.execute(sql, params)
+            if hasattr(cursor, "fetch_pandas_all"):
+                return cursor.fetch_pandas_all()
             columns = [desc[0] for desc in cursor.description]
             data = cursor.fetchall()
             return pd.DataFrame(data, columns=columns)
