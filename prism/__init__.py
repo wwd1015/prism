@@ -9,6 +9,7 @@ Public API:
 """
 
 from prism.colors import evaluate_color
+from prism.connector import SnowflakeConnector
 from prism.core import Report
 from prism.helpers import format_badge, format_commentary, format_table
 from prism.resolver import MetricResolver
@@ -19,6 +20,7 @@ import prism.metrics  # noqa: F401
 __all__ = [
     "Report",
     "MetricResolver",
+    "SnowflakeConnector",
     "evaluate_color",
     "format_badge",
     "format_commentary",

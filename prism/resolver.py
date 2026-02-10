@@ -35,7 +35,8 @@ class MetricResolver:
         result = resolver.call("gini_coefficient", source="local", data=df)
     """
 
-    def __init__(self):
+    def __init__(self, connector=None):
+        self.connector = connector
         self._cap_available = _check_cap_available()
         if self._cap_available:
             logger.info("CAP package detected — cap-sourced metrics enabled")
@@ -56,6 +57,9 @@ class MetricResolver:
         Raises:
             ValueError: If the metric is not found in any available backend.
         """
+        if self.connector is not None:
+            inputs.setdefault("connector", self.connector)
+
         if source == "cap":
             if self._cap_available:
                 return self._call_cap(metric_id, **inputs)

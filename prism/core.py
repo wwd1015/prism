@@ -68,12 +68,13 @@ class Report:
         report_date: str | None = None,
         config_dir: str = "config",
         commentary_file: str | Path | None = None,
+        connector: Any | None = None,
     ):
         self.model_id = model_id
         self.report_date = report_date or date.today().isoformat()
         self.config = load_model_config(config_dir, model_id)
         self.model_name = self.config.get("model_name", model_id)
-        self.resolver = MetricResolver()
+        self.resolver = MetricResolver(connector=connector)
         self._results: dict[str, dict[str, Any]] = {}
         self._colors: dict[str, Any] = {}
         self._commentary: dict[str, dict[str, str]] = {}
