@@ -17,6 +17,12 @@ from typing import Any
 COLOR_ORDER = {"green": 0, "yellow": 1, "red": 2}
 ORDER_TO_COLOR = {v: k for k, v in COLOR_ORDER.items()}
 
+# Numeric scores for weighted averaging
+COLOR_SCORE = {"green": 3, "yellow": 2, "red": 1}
+
+# Default thresholds for weighted_average → color conversion
+DEFAULT_WEIGHTED_THRESHOLDS = {"green": ">= 2.5", "yellow": ">= 1.5", "red": "< 1.5"}
+
 _OPERATOR_MAP = {
     ">=": operator.ge,
     "<=": operator.le,
@@ -103,6 +109,49 @@ def aggregate_sector(metric_colors: list[str], method: str = "worst_color") -> s
         return max(counts, key=lambda c: (counts[c], COLOR_ORDER[c]))
     else:
         raise ValueError(f"Unknown sector aggregation method: {method!r}")
+
+
+def aggregate_sector_weighted(
+    metric_colors: dict[str, str],
+    weights: dict[str, float],
+    thresholds: dict[str, str] | None = None,
+) -> str:
+    """Aggregate metric colors using a weighted average.
+
+    Colors are scored (green=3, yellow=2, red=1), a weighted average is
+    computed, then converted back to a color via thresholds.
+
+    Args:
+        metric_colors: Mapping of metric_key → color string.
+        weights: Mapping of metric_key → weight (must cover all keys in metric_colors).
+        thresholds: Optional score→color thresholds. Defaults to >=2.5 green, >=1.5 yellow.
+
+    Returns:
+        The aggregated color string.
+
+    Raises:
+        ValueError: If metric_colors is empty or a metric has no weight.
+    """
+    if not metric_colors:
+        raise ValueError("Cannot aggregate empty dict of colors")
+
+    if thresholds is None:
+        thresholds = DEFAULT_WEIGHTED_THRESHOLDS
+
+    total_weight = 0.0
+    weighted_sum = 0.0
+    for key, color in metric_colors.items():
+        if key not in weights:
+            raise ValueError(f"No weight defined for metric {key!r}")
+        w = weights[key]
+        weighted_sum += COLOR_SCORE[color] * w
+        total_weight += w
+
+    if total_weight == 0:
+        raise ValueError("Total weight is zero")
+
+    avg = weighted_sum / total_weight
+    return evaluate_color(avg, thresholds)
 
 
 def parse_matrix_rules(
@@ -223,16 +272,37 @@ def compute_all_colors(
         metric_colors[key] = evaluate_color(metric_values[key], mcfg["color"])
 
     # Step 2: Group by sector and aggregate
-    sector_method = agg_cfg.get("sector", {}).get("method", "worst_color")
-    sectors: dict[str, list[str]] = {}
+    sector_cfg = agg_cfg.get("sector", {})
+    default_sector_method = sector_cfg.get("method", "worst_color")
+    sector_overrides = sector_cfg.get("overrides", {})
+
+    # Build dict of sector → {metric_key: color}
+    sectors: dict[str, dict[str, str]] = {}
     for key, mcfg in metrics_cfg.items():
         sector = mcfg.get("sector", "default")
         if key in metric_colors:
-            sectors.setdefault(sector, []).append(metric_colors[key])
+            sectors.setdefault(sector, {})[key] = metric_colors[key]
 
     sector_colors: dict[str, str] = {}
-    for sector, colors in sectors.items():
-        sector_colors[sector] = aggregate_sector(colors, sector_method)
+    for sector, colors_map in sectors.items():
+        override = sector_overrides.get(sector, {})
+        method = override.get("method", default_sector_method)
+
+        if method == "weighted_average":
+            sector_colors[sector] = aggregate_sector_weighted(
+                colors_map,
+                override["weights"],
+                override.get("thresholds"),
+            )
+        elif method == "matrix":
+            dims = override["dimensions"]
+            parsed = parse_matrix_rules(override["rules"], len(dims))
+            sector_colors[sector] = aggregate_matrix_rules(colors_map, dims, parsed)
+        else:
+            # worst_color, best_color, majority
+            sector_colors[sector] = aggregate_sector(
+                list(colors_map.values()), method
+            )
 
     # Step 3: Final aggregation via matrix (if configured)
     final_cfg = agg_cfg.get("final", {})

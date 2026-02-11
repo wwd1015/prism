@@ -5,6 +5,7 @@ import pytest
 from prism.colors import (
     aggregate_matrix_rules,
     aggregate_sector,
+    aggregate_sector_weighted,
     compute_all_colors,
     evaluate_color,
     parse_matrix_rules,
@@ -314,4 +315,140 @@ class TestComputeAllColorsRules:
 
         result2 = compute_all_colors(config, {"gini": 0.5, "psi": 0.30})
         assert result2["final"] == "red"
+
+
+# --- aggregate_sector_weighted ---
+
+
+class TestAggregateSectorWeighted:
+    def test_basic_weighted(self):
+        colors = {"a": "green", "b": "red"}
+        weights = {"a": 0.6, "b": 0.4}
+        # 3*0.6 + 1*0.4 = 2.2 → yellow (>= 1.5 but < 2.5)
+        assert aggregate_sector_weighted(colors, weights) == "yellow"
+
+    def test_all_green(self):
+        colors = {"a": "green", "b": "green"}
+        weights = {"a": 0.5, "b": 0.5}
+        # 3.0 → green
+        assert aggregate_sector_weighted(colors, weights) == "green"
+
+    def test_all_red(self):
+        colors = {"a": "red", "b": "red"}
+        weights = {"a": 0.5, "b": 0.5}
+        # 1.0 → red
+        assert aggregate_sector_weighted(colors, weights) == "red"
+
+    def test_boundary_green(self):
+        # Exactly 2.5 → green
+        colors = {"a": "green", "b": "yellow"}
+        weights = {"a": 0.5, "b": 0.5}
+        # 3*0.5 + 2*0.5 = 2.5 → green
+        assert aggregate_sector_weighted(colors, weights) == "green"
+
+    def test_boundary_yellow(self):
+        # Exactly 1.5 → yellow
+        colors = {"a": "yellow", "b": "red"}
+        weights = {"a": 0.5, "b": 0.5}
+        # 2*0.5 + 1*0.5 = 1.5 → yellow
+        assert aggregate_sector_weighted(colors, weights) == "yellow"
+
+    def test_custom_thresholds(self):
+        colors = {"a": "green", "b": "red"}
+        weights = {"a": 0.6, "b": 0.4}
+        # 2.2 — with custom threshold, 2.2 >= 2.0 → green
+        thresholds = {"green": ">= 2.0", "yellow": ">= 1.0", "red": "< 1.0"}
+        assert aggregate_sector_weighted(colors, weights, thresholds) == "green"
+
+    def test_missing_weight_raises(self):
+        with pytest.raises(ValueError, match="No weight"):
+            aggregate_sector_weighted({"a": "green"}, {})
+
+    def test_empty_raises(self):
+        with pytest.raises(ValueError, match="empty"):
+            aggregate_sector_weighted({}, {"a": 0.5})
+
+
+# --- per-sector overrides in compute_all_colors ---
+
+
+class TestComputeAllColorsOverrides:
+    def _base_config(self):
+        return {
+            "metrics": {
+                "rank_ordering": {
+                    "sector": "disc_power",
+                    "color": {"green": ">= 0.4", "yellow": ">= 0.3", "red": "< 0.3"},
+                },
+                "ks": {
+                    "sector": "disc_power",
+                    "color": {"green": ">= 0.4", "yellow": ">= 0.3", "red": "< 0.3"},
+                },
+                "psi": {
+                    "sector": "stability",
+                    "color": {"green": "< 0.1", "yellow": "< 0.25", "red": ">= 0.25"},
+                },
+                "csi": {
+                    "sector": "stability",
+                    "color": {"green": "< 0.1", "yellow": "< 0.25", "red": ">= 0.25"},
+                },
+            },
+        }
+
+    def test_weighted_average_override(self):
+        config = self._base_config()
+        config["aggregation"] = {
+            "sector": {
+                "method": "worst_color",
+                "overrides": {
+                    "disc_power": {
+                        "method": "weighted_average",
+                        "weights": {"rank_ordering": 0.6, "ks": 0.4},
+                    },
+                },
+            },
+        }
+        # rank_ordering=green(3), ks=red(1) → 3*0.6+1*0.4=2.2 → yellow
+        result = compute_all_colors(
+            config, {"rank_ordering": 0.5, "ks": 0.2, "psi": 0.05, "csi": 0.05}
+        )
+        assert result["sectors"]["disc_power"] == "yellow"
+        # stability uses default worst_color → green
+        assert result["sectors"]["stability"] == "green"
+
+    def test_matrix_override(self):
+        config = self._base_config()
+        config["aggregation"] = {
+            "sector": {
+                "method": "worst_color",
+                "overrides": {
+                    "stability": {
+                        "method": "matrix",
+                        "dimensions": ["psi", "csi"],
+                        "rules": [
+                            "green  | green  = green",
+                            "red    | *      = red",
+                            "*      | *      = yellow",
+                        ],
+                    },
+                },
+            },
+        }
+        # psi=green, csi=yellow → yellow (catch-all)
+        result = compute_all_colors(
+            config, {"rank_ordering": 0.5, "ks": 0.5, "psi": 0.05, "csi": 0.15}
+        )
+        assert result["sectors"]["stability"] == "yellow"
+        # disc_power uses default worst_color → green
+        assert result["sectors"]["disc_power"] == "green"
+
+    def test_no_overrides_unchanged(self):
+        """Configs without overrides still work as before."""
+        config = self._base_config()
+        config["aggregation"] = {"sector": {"method": "worst_color"}}
+        result = compute_all_colors(
+            config, {"rank_ordering": 0.5, "ks": 0.5, "psi": 0.05, "csi": 0.05}
+        )
+        assert result["sectors"]["disc_power"] == "green"
+        assert result["sectors"]["stability"] == "green"
 

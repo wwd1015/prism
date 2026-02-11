@@ -276,14 +276,47 @@ Metrics are grouped by `sector`. Within each sector, colors are combined using o
 | `worst_color` | The worst (most severe) color in the sector. If any metric is red, the sector is red. |
 | `best_color` | The best color in the sector. If any metric is green, the sector is green. |
 | `majority` | The color that appears most often. Tie-breaks favor the worst color. |
+| `weighted_average` | Colors are scored (green=3, yellow=2, red=1), weighted average computed, then converted back to a color. |
+| `matrix` | Explicit rules mapping metric color combinations to a sector color (same syntax as final-level matrix). |
 
 Configure in the aggregation section:
 
 ```yaml
 aggregation:
   sector:
-    method: worst_color   # or best_color, majority
+    method: worst_color   # default for all sectors
 ```
+
+#### Per-sector overrides
+
+You can override the aggregation method for individual sectors using the `overrides` key:
+
+```yaml
+aggregation:
+  sector:
+    method: worst_color          # default for all sectors
+    overrides:
+      discriminatory_power:
+        method: weighted_average
+        weights:
+          rank_ordering: 0.6
+          ks_statistic: 0.4
+        thresholds:              # optional (defaults: green >= 2.5, yellow >= 1.5)
+          green: ">= 2.5"
+          yellow: ">= 1.5"
+          red: "< 1.5"
+      stability:
+        method: matrix
+        dimensions: [psi, csi]
+        rules:
+          - "green | green = green"
+          - "red   | *     = red"
+          - "*     | *     = yellow"
+```
+
+**`weighted_average`**: Each color is scored (green=3, yellow=2, red=1). The weighted average of scores is computed using the specified `weights`, then converted back to a color using `thresholds` (defaults: >=2.5 → green, >=1.5 → yellow, else red).
+
+**`matrix`** (sector-level): Uses the same rule syntax as the final-level matrix. `dimensions` lists the metric keys within that sector, and `rules` map their color combinations to a sector color.
 
 ### Layer 3: Final Model Color
 
@@ -319,11 +352,22 @@ Each rule reads left-to-right matching the `dimensions` order. The `*` wildcard 
 ### Visual summary
 
 ```
-Gini → green  ─┐
-                ├─ discriminatory_power: green (worst_color) ─┐
-AUC  → green  ─┘                                              │
-                                                               ├─ matrix → green (final)
-PSI  → green  ─── stability: green (worst_color) ────────────┘
+                    Layer 1                Layer 2                  Layer 3
+                Metric Thresholds     Sector Aggregation       Final Aggregation
+                ─────────────────     ──────────────────       ─────────────────
+
+  Gini   0.45  ──► green ─┐
+                           ├─► disc_power: green ──┐
+  AUC    0.88  ──► green ─┘    (worst_color)       │
+                                                    ├──► matrix ──► FINAL: green
+  PSI    0.04  ──► green ─┐                         │
+                           ├─► stability: green ───┘
+  CSI    0.06  ──► green ─┘    (weighted_average)
+
+  Each metric value        Metrics grouped by       Sector colors combined
+  is evaluated against     sector; each sector      into one final model
+  its color thresholds     can use its own method   color via matrix rules
+                           (or a shared default)    or worst_color
 ```
 
 ## 7. Built-in Metrics

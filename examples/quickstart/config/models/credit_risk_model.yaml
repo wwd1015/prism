@@ -54,6 +54,12 @@ metrics:
 aggregation:
   sector:
     method: worst_color
+    overrides:
+      discriminatory_power:
+        method: weighted_average
+        weights:
+          rank_ordering: 0.7
+          ks_statistic: 0.3
   final:
     method: matrix
     dimensions: [discriminatory_power, backtesting, stability]

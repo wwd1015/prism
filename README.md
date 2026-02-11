@@ -44,6 +44,26 @@ report.commentary("rank_ordering")   # MD commentary callout (or "")
 report.final_color()                 # Overall model color
 ```
 
+## RAG Color Pipeline
+
+PRISM aggregates model health through three layers:
+
+```
+              Layer 1              Layer 2                Layer 3
+          Metric Thresholds   Sector Aggregation     Final Aggregation
+          ─────────────────   ──────────────────     ─────────────────
+
+Gini 0.45 ──► green ─┐
+                      ├──► disc_power: green ──┐
+AUC  0.88 ──► green ─┘    (worst_color)       │
+                                               ├──► matrix ──► FINAL: green
+PSI  0.04 ──► green ─┐                        │
+                      ├──► stability: green ──┘
+CSI  0.06 ──► green ─┘    (weighted_average)
+```
+
+Sector aggregation methods: `worst_color`, `best_color`, `majority`, `weighted_average`, `matrix` — configurable per sector. See the [User Guide](docs/user-guide.md) for full details.
+
 ## Configuration
 
 Each model has a YAML config (`config/models/<model_id>.yaml`) specifying:
@@ -149,6 +169,15 @@ Install the optional dependency: `pip install prism[snowflake]`
 ## CAP Integration
 
 PRISM works standalone with built-in metrics. When CAP becomes available, switch `source: local` to `source: cap` in your YAML config — no report code changes needed. The `connector` parameter flows through automatically to CAP metric calls.
+
+## Documentation
+
+See the [User Guide](docs/user-guide.md) for complete documentation including:
+- YAML configuration reference
+- RAG color system (thresholds, sector aggregation, per-sector overrides, matrix rules)
+- Built-in metrics and their parameters
+- MD commentary setup
+- Snowflake and CAP integration
 
 ## Development
 
