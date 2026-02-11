@@ -69,7 +69,9 @@ def add_model(model_id: str):
     config = {
         "model_id": model_id,
         "model_name": model_id.replace("_", " ").title(),
-        "model_owner": "team-name",
+        "model_version": "1.0.0",
+        "primary_model_developer": "developer-name",
+        "model_repo_url": "",
         "metrics": {
             "rank_ordering": {
                 "sector": "discriminatory_power",

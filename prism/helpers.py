@@ -190,6 +190,33 @@ def format_commentary(
     return "\n".join(lines)
 
 
+def version_match_semver(version: str, pattern: str) -> bool:
+    """Check if a semver version string matches a pattern with wildcards.
+
+    Args:
+        version: A semver string like "2.1.0".
+        pattern: A semver pattern where "x" matches any value, e.g. "2.x.x".
+
+    Returns:
+        True if the version matches the pattern.
+
+    Raises:
+        ValueError: If version or pattern does not have exactly 3 dot-separated parts.
+    """
+    v_parts = version.split(".")
+    p_parts = pattern.split(".")
+    if len(v_parts) != 3:
+        raise ValueError(f"Invalid semver version: {version!r} (expected major.minor.patch)")
+    if len(p_parts) != 3:
+        raise ValueError(f"Invalid semver pattern: {pattern!r} (expected major.minor.patch)")
+    for v, p in zip(v_parts, p_parts):
+        if p.lower() == "x":
+            continue
+        if v != p:
+            return False
+    return True
+
+
 def format_delta(current: float, previous: float, fmt: str = "pct") -> str:
     """Render a change indicator: arrow + formatted delta.
 

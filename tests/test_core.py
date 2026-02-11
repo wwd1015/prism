@@ -17,7 +17,9 @@ def sample_config():
     return {
         "model_id": "test_model",
         "model_name": "Test Model",
-        "model_owner": "team-test",
+        "model_version": "1.0.0",
+        "primary_model_developer": "team-test",
+        "model_repo_url": "https://github.com/example/test-model",
         "metrics": {
             "rank_ordering": {
                 "sector": "discriminatory_power",

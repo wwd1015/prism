@@ -11,7 +11,7 @@ Public API:
 from prism.colors import evaluate_color
 from prism.connector import SnowflakeConnector
 from prism.core import Report
-from prism.helpers import format_badge, format_commentary, format_table
+from prism.helpers import format_badge, format_commentary, format_table, version_match_semver
 from prism.resolver import MetricResolver
 
 # Trigger metric registration on import
@@ -25,4 +25,5 @@ __all__ = [
     "format_badge",
     "format_commentary",
     "format_table",
+    "version_match_semver",
 ]

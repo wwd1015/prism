@@ -1,6 +1,8 @@
 model_id: credit_risk_model
-model_name: "Credit Risk Model v2.1"
-model_owner: "Model Risk Team"
+model_name: "Credit Risk Model"
+model_version: "2.1.0"
+primary_model_developer: "Model Risk Team"
+model_repo_url: "https://github.com/example/credit-risk-model"
 tags: [credit, retail]
 
 metrics:

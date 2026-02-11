@@ -122,6 +122,7 @@ def list_models(config_dir: str = "config") -> list[dict]:
             {
                 "model_id": cfg.get("model_id", yaml_file.stem),
                 "model_name": cfg.get("model_name", yaml_file.stem),
+                "model_version": cfg.get("model_version"),
                 "tags": cfg.get("tags", []),
             }
         )

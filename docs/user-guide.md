@@ -152,8 +152,10 @@ Each model has a YAML configuration file at `config/models/<model_id>.yaml`. Thi
 
 ```yaml
 model_id: credit_risk_model
-model_name: "Credit Risk Model v2.1"
-model_owner: "Model Risk Team"
+model_name: "Credit Risk Model"
+model_version: "2.1.0"
+primary_model_developer: "Model Risk Team"
+model_repo_url: "https://github.com/example/credit-risk-model"
 tags: [credit, retail]
 
 metrics:
@@ -221,7 +223,9 @@ aggregation:
 |-------|----------|-------------|
 | `model_id` | Yes | Unique identifier, matches filename and report directory |
 | `model_name` | No | Display name in reports (defaults to model_id) |
-| `model_owner` | No | Team or owner name |
+| `model_version` | No | Semver version string (e.g. `"2.1.0"`) |
+| `primary_model_developer` | No | Developer or team responsible for the model |
+| `model_repo_url` | No | URL of the model's source repository |
 | `tags` | No | List of tags for filtering during batch renders |
 
 **Metric fields** (under `metrics.<key>`):

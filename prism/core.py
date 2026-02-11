@@ -74,6 +74,9 @@ class Report:
         self.report_date = report_date or date.today().isoformat()
         self.config = load_model_config(config_dir, model_id)
         self.model_name = self.config.get("model_name", model_id)
+        self.model_version = self.config.get("model_version")
+        self.primary_model_developer = self.config.get("primary_model_developer")
+        self.model_repo_url = self.config.get("model_repo_url")
         self.resolver = MetricResolver(connector=connector)
         self._results: dict[str, dict[str, Any]] = {}
         self._colors: dict[str, Any] = {}
@@ -281,15 +284,27 @@ class Report:
         )
 
     def header(self) -> str:
-        """Render report header: model name, date, final color badge."""
+        """Render report header: model name, version, date, developer, final color badge."""
         self._ensure_computed()
         color = self.final_color()
         badge = format_badge(color)
-        return (
-            f"# {self.model_name} — {badge}\n\n"
-            f"**Report Date:** {self.report_date} &nbsp;|&nbsp; "
-            f"**Model ID:** `{self.model_id}`\n\n---\n"
-        )
+
+        if self.model_repo_url:
+            title = f"[{self.model_name}]({self.model_repo_url})"
+        else:
+            title = self.model_name
+        if self.model_version:
+            title += f" v{self.model_version}"
+
+        parts = [
+            f"**Report Date:** {self.report_date}",
+            f"**Model ID:** `{self.model_id}`",
+        ]
+        if self.primary_model_developer:
+            parts.append(f"**Developer:** {self.primary_model_developer}")
+        info_line = " &nbsp;|&nbsp; ".join(parts)
+
+        return f"# {title} — {badge}\n\n{info_line}\n\n---\n"
 
     def table(self, df: pd.DataFrame, **kwargs: Any) -> str:
         """Render a DataFrame as a formatted markdown table."""

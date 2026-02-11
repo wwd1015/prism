@@ -10,6 +10,7 @@ from prism.helpers import (
     format_kpi,
     format_scorecard,
     format_table,
+    version_match_semver,
 )
 
 
@@ -140,3 +141,31 @@ class TestFormatDelta:
         result = format_delta(0.5, 0.0, fmt="pct")
         # Division by zero fallback → uses absolute
         assert "\u25b2" in result
+
+
+class TestVersionMatchSemver:
+    def test_exact_match(self):
+        assert version_match_semver("2.1.0", "2.1.0") is True
+
+    def test_exact_mismatch(self):
+        assert version_match_semver("2.1.0", "2.2.0") is False
+
+    def test_wildcard_minor_patch(self):
+        assert version_match_semver("3.5.2", "3.x.x") is True
+
+    def test_wildcard_patch_only(self):
+        assert version_match_semver("1.2.9", "1.2.x") is True
+
+    def test_wildcard_mismatch(self):
+        assert version_match_semver("2.1.0", "3.x.x") is False
+
+    def test_all_wildcards(self):
+        assert version_match_semver("9.9.9", "x.x.x") is True
+
+    def test_invalid_version_too_few_parts(self):
+        with pytest.raises(ValueError, match="Invalid semver version"):
+            version_match_semver("2.1", "2.1.0")
+
+    def test_invalid_pattern_too_many_parts(self):
+        with pytest.raises(ValueError, match="Invalid semver pattern"):
+            version_match_semver("2.1.0", "2.1.0.0")

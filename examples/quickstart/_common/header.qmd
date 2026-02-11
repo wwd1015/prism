@@ -4,9 +4,25 @@
 
 color = report.final_color()
 badge = report.badge(color)
-print(f"## {report.model_name} — {badge} {{.unlisted}}")
+
+# Title — hyperlink to repo if available
+if report.model_repo_url:
+    title = f"[{report.model_name}]({report.model_repo_url})"
+else:
+    title = report.model_name
+
+# Subtitle with version
+if report.model_version:
+    title += f" v{report.model_version}"
+
+print(f"## {title} — {badge} {{.unlisted}}")
 print()
-print(f"**Report Date:** {report.report_date} &nbsp;|&nbsp; **Model ID:** `{report.model_id}`")
+
+# Info line
+parts = [f"**Report Date:** {report.report_date}", f"**Model ID:** `{report.model_id}`"]
+if report.primary_model_developer:
+    parts.append(f"**Developer:** {report.primary_model_developer}")
+print(" &nbsp;|&nbsp; ".join(parts))
 print()
 print("---")
 ```

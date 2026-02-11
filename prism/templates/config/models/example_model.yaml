@@ -1,6 +1,8 @@
 model_id: example_model
 model_name: "Example Model"
-model_owner: "team-example"
+model_version: "1.0.0"
+primary_model_developer: "team-example"
+model_repo_url: ""
 
 metrics:
   rank_ordering:
