@@ -105,38 +105,93 @@ def aggregate_sector(metric_colors: list[str], method: str = "worst_color") -> s
         raise ValueError(f"Unknown sector aggregation method: {method!r}")
 
 
-def aggregate_matrix(
+def parse_matrix_rules(
+    rules: list[str],
+    num_dimensions: int,
+) -> dict[tuple[str, ...], str]:
+    """Parse rule strings into a lookup dict keyed by color tuples.
+
+    Each rule has the form: "color1 | color2 | ... = result"
+    Supports '*' as a wildcard matching any color.
+
+    Args:
+        rules: List of rule strings.
+        num_dimensions: Expected number of input dimensions.
+
+    Returns:
+        Dict mapping tuples of colors (or '*') to result color.
+
+    Raises:
+        ValueError: If a rule is malformed or dimension count mismatches.
+    """
+    parsed: dict[tuple[str, ...], str] = {}
+    valid_tokens = {"green", "yellow", "red", "*"}
+    valid_results = {"green", "yellow", "red"}
+
+    for rule in rules:
+        if "=" not in rule:
+            raise ValueError(f"Invalid rule (missing '='): {rule!r}")
+        lhs, rhs = rule.rsplit("=", 1)
+        result = rhs.strip()
+        if result not in valid_results:
+            raise ValueError(f"Invalid result color {result!r} in rule: {rule!r}")
+        parts = [p.strip() for p in lhs.split("|")]
+        if len(parts) != num_dimensions:
+            raise ValueError(
+                f"Rule has {len(parts)} dimensions, expected {num_dimensions}: {rule!r}"
+            )
+        for p in parts:
+            if p not in valid_tokens:
+                raise ValueError(f"Invalid color {p!r} in rule: {rule!r}")
+        key = tuple(parts)
+        parsed[key] = result
+
+    return parsed
+
+
+def aggregate_matrix_rules(
     sector_colors: dict[str, str],
     dimensions: list[str],
-    matrix: dict[str, dict[str, str]],
+    rules: dict[tuple[str, ...], str],
 ) -> str:
-    """Iteratively apply 2D mapping matrix across sector colors.
+    """Look up the final color from parsed rules, with wildcard fallback.
 
-    For N dimensions, applies the matrix pairwise:
-      step 1: matrix[dim1_color][dim2_color] → intermediate
-      step 2: matrix[intermediate][dim3_color] → final
-      ...
+    Tries exact match first, then progressively replaces dimensions with '*'
+    (fewest wildcards first) until a match is found.
 
     Args:
         sector_colors: Mapping of sector name → color string.
-        dimensions: Ordered list of sector names to aggregate.
-        matrix: 2D color mapping, e.g. matrix["green"]["yellow"] → "yellow".
+        dimensions: Ordered list of sector names.
+        rules: Parsed rules dict from parse_matrix_rules().
 
     Returns:
-        The final aggregated color string.
+        The matched result color.
 
     Raises:
-        ValueError: If dimensions has fewer than 2 entries.
-        KeyError: If a sector name is missing from sector_colors.
+        KeyError: If no rule matches the input colors.
     """
-    if len(dimensions) < 2:
-        raise ValueError("Matrix aggregation requires at least 2 dimensions")
+    from itertools import combinations
 
-    result = sector_colors[dimensions[0]]
-    for dim in dimensions[1:]:
-        other = sector_colors[dim]
-        result = matrix[result][other]
-    return result
+    colors = tuple(sector_colors[d] for d in dimensions)
+    n = len(colors)
+
+    # Try from 0 wildcards to n wildcards
+    for num_wildcards in range(n + 1):
+        if num_wildcards == 0:
+            if colors in rules:
+                return rules[colors]
+        else:
+            for positions in combinations(range(n), num_wildcards):
+                key = list(colors)
+                for pos in positions:
+                    key[pos] = "*"
+                t = tuple(key)
+                if t in rules:
+                    return rules[t]
+
+    raise KeyError(
+        f"No rule matched for colors {dict(zip(dimensions, colors))}"
+    )
 
 
 def compute_all_colors(
@@ -183,11 +238,11 @@ def compute_all_colors(
     final_cfg = agg_cfg.get("final", {})
     if final_cfg.get("method") == "matrix":
         dimensions = final_cfg["dimensions"]
-        matrix = final_cfg["matrix"]
         # Only include dimensions that have sector colors
         active_dims = [d for d in dimensions if d in sector_colors]
+        parsed = parse_matrix_rules(final_cfg["rules"], len(dimensions))
         if len(active_dims) >= 2:
-            final = aggregate_matrix(sector_colors, active_dims, matrix)
+            final = aggregate_matrix_rules(sector_colors, active_dims, parsed)
         elif len(active_dims) == 1:
             final = sector_colors[active_dims[0]]
         else:

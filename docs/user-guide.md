@@ -297,29 +297,24 @@ aggregation:
     method: worst_color
 ```
 
-**Matrix**: A 2D mapping matrix that defines how each pair of sector colors combines. For N sectors, the matrix is applied iteratively (pairwise from left to right).
+**Matrix (rules)**: Define explicit rules that map N sector colors directly to a final color. Each rule uses `|` to separate input dimensions and `=` to assign the result. Use `*` as a wildcard to match any color. Rules are evaluated most-specific first (fewest wildcards wins).
 
 ```yaml
 aggregation:
   final:
     method: matrix
-    dimensions: [discriminatory_power, stability]
-    matrix:
-      green:
-        green: green
-        yellow: yellow
-        red: red
-      yellow:
-        green: yellow
-        yellow: yellow
-        red: red
-      red:
-        green: red
-        yellow: red
-        red: red
+    dimensions: [discriminatory_power, backtesting, stability]
+    rules:
+      - "green  | green  | green  = green"
+      - "green  | green  | yellow = yellow"
+      - "green  | yellow | green  = yellow"
+      - "yellow | *      | *      = yellow"
+      - "*      | *      | red    = red"
+      - "red    | *      | *      = red"
 ```
 
-Read the matrix as: `matrix[sector1_color][sector2_color] → final_color`. For example, if discriminatory_power is green and stability is yellow, the final color is yellow.
+Each rule reads left-to-right matching the `dimensions` order. The `*` wildcard matches any color (green, yellow, or red). When multiple rules could match, the most specific rule wins — exact matches are checked before single-wildcard rules, which are checked before double-wildcard rules, and so on. This works with any number of dimensions.
+
 
 ### Visual summary
 

@@ -57,16 +57,13 @@ aggregation:
   final:
     method: matrix
     dimensions: [discriminatory_power, backtesting, stability]
-    matrix:
-      green:
-        green: green
-        yellow: yellow
-        red: red
-      yellow:
-        green: yellow
-        yellow: yellow
-        red: red
-      red:
-        green: red
-        yellow: red
-        red: red
+    rules:
+      - "green  | green  | green  = green"
+      - "green  | green  | yellow = yellow"
+      - "green  | yellow | green  = yellow"
+      - "green  | yellow | yellow = yellow"
+      - "green  | *      | red    = red"
+      - "yellow | green  | green  = yellow"
+      - "yellow | *      | *      = yellow"
+      - "yellow | *      | red    = red"
+      - "red    | *      | *      = red"

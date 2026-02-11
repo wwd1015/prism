@@ -3,10 +3,11 @@
 import pytest
 
 from prism.colors import (
-    aggregate_matrix,
+    aggregate_matrix_rules,
     aggregate_sector,
     compute_all_colors,
     evaluate_color,
+    parse_matrix_rules,
     parse_threshold,
 )
 
@@ -130,39 +131,6 @@ class TestAggregateSector:
             aggregate_sector(["green"], "median")
 
 
-# --- aggregate_matrix ---
-
-
-class TestAggregateMatrix:
-    MATRIX = {
-        "green": {"green": "green", "yellow": "yellow", "red": "red"},
-        "yellow": {"green": "yellow", "yellow": "yellow", "red": "red"},
-        "red": {"green": "red", "yellow": "red", "red": "red"},
-    }
-
-    def test_all_green(self):
-        sector_colors = {"a": "green", "b": "green", "c": "green"}
-        assert aggregate_matrix(sector_colors, ["a", "b", "c"], self.MATRIX) == "green"
-
-    def test_one_yellow(self):
-        sector_colors = {"a": "green", "b": "yellow"}
-        assert aggregate_matrix(sector_colors, ["a", "b"], self.MATRIX) == "yellow"
-
-    def test_red_dominates(self):
-        sector_colors = {"a": "green", "b": "red", "c": "green"}
-        # green × red → red, red × green → red
-        assert aggregate_matrix(sector_colors, ["a", "b", "c"], self.MATRIX) == "red"
-
-    def test_three_dimensions(self):
-        sector_colors = {"a": "green", "b": "yellow", "c": "yellow"}
-        # green × yellow → yellow, yellow × yellow → yellow
-        assert aggregate_matrix(sector_colors, ["a", "b", "c"], self.MATRIX) == "yellow"
-
-    def test_too_few_dimensions(self):
-        with pytest.raises(ValueError, match="at least 2"):
-            aggregate_matrix({"a": "green"}, ["a"], self.MATRIX)
-
-
 # --- compute_all_colors ---
 
 
@@ -188,11 +156,15 @@ class TestComputeAllColors:
                 "final": {
                     "method": "matrix",
                     "dimensions": ["disc_power", "stability"],
-                    "matrix": {
-                        "green": {"green": "green", "yellow": "yellow", "red": "red"},
-                        "yellow": {"green": "yellow", "yellow": "yellow", "red": "red"},
-                        "red": {"green": "red", "yellow": "red", "red": "red"},
-                    },
+                    "rules": [
+                        "green  | green  = green",
+                        "green  | yellow = yellow",
+                        "green  | red    = red",
+                        "yellow | green  = yellow",
+                        "yellow | yellow = yellow",
+                        "yellow | red    = red",
+                        "red    | *      = red",
+                    ],
                 },
             },
         }
@@ -234,3 +206,112 @@ class TestComputeAllColors:
         }
         result = compute_all_colors(config, {})
         assert result["metrics"] == {}
+
+
+# --- parse_matrix_rules ---
+
+
+class TestParseMatrixRules:
+    def test_basic_parse(self):
+        rules = ["green | green = green", "green | red = red"]
+        parsed = parse_matrix_rules(rules, 2)
+        assert parsed[("green", "green")] == "green"
+        assert parsed[("green", "red")] == "red"
+
+    def test_wildcard(self):
+        rules = ["red | * = red"]
+        parsed = parse_matrix_rules(rules, 2)
+        assert parsed[("red", "*")] == "red"
+
+    def test_three_dimensions(self):
+        rules = ["green | yellow | red = red"]
+        parsed = parse_matrix_rules(rules, 3)
+        assert parsed[("green", "yellow", "red")] == "red"
+
+    def test_dimension_mismatch(self):
+        with pytest.raises(ValueError, match="2 dimensions, expected 3"):
+            parse_matrix_rules(["green | red = red"], 3)
+
+    def test_invalid_color(self):
+        with pytest.raises(ValueError, match="Invalid color"):
+            parse_matrix_rules(["green | blue = red"], 2)
+
+    def test_invalid_result(self):
+        with pytest.raises(ValueError, match="Invalid result color"):
+            parse_matrix_rules(["green | green = blue"], 2)
+
+    def test_missing_equals(self):
+        with pytest.raises(ValueError, match="missing '='"):
+            parse_matrix_rules(["green | green green"], 2)
+
+
+# --- aggregate_matrix_rules ---
+
+
+class TestAggregateMatrixRules:
+    def test_exact_match(self):
+        rules = {("green", "yellow"): "yellow", ("green", "green"): "green"}
+        assert aggregate_matrix_rules({"a": "green", "b": "yellow"}, ["a", "b"], rules) == "yellow"
+
+    def test_wildcard_fallback(self):
+        rules = {("red", "*"): "red"}
+        assert aggregate_matrix_rules({"a": "red", "b": "green"}, ["a", "b"], rules) == "red"
+
+    def test_exact_before_wildcard(self):
+        rules = {("red", "green"): "yellow", ("red", "*"): "red"}
+        assert aggregate_matrix_rules({"a": "red", "b": "green"}, ["a", "b"], rules) == "yellow"
+
+    def test_catch_all(self):
+        rules = {("*", "*"): "yellow"}
+        assert aggregate_matrix_rules({"a": "red", "b": "green"}, ["a", "b"], rules) == "yellow"
+
+    def test_no_match_raises(self):
+        rules = {("green", "green"): "green"}
+        with pytest.raises(KeyError, match="No rule matched"):
+            aggregate_matrix_rules({"a": "red", "b": "red"}, ["a", "b"], rules)
+
+    def test_three_dim_wildcard(self):
+        rules = {("red", "*", "*"): "red", ("green", "green", "green"): "green"}
+        assert aggregate_matrix_rules(
+            {"a": "red", "b": "yellow", "c": "green"}, ["a", "b", "c"], rules
+        ) == "red"
+
+
+# --- compute_all_colors with rules ---
+
+
+class TestComputeAllColorsRules:
+    def test_rules_format_end_to_end(self):
+        config = {
+            "metrics": {
+                "gini": {
+                    "sector": "disc_power",
+                    "color": {"green": ">= 0.4", "yellow": ">= 0.3", "red": "< 0.3"},
+                },
+                "psi": {
+                    "sector": "stability",
+                    "color": {"green": "< 0.1", "yellow": "< 0.25", "red": ">= 0.25"},
+                },
+            },
+            "aggregation": {
+                "sector": {"method": "worst_color"},
+                "final": {
+                    "method": "matrix",
+                    "dimensions": ["disc_power", "stability"],
+                    "rules": [
+                        "green  | green  = green",
+                        "green  | yellow = yellow",
+                        "yellow | green  = yellow",
+                        "yellow | yellow = yellow",
+                        "*      | red    = red",
+                        "red    | *      = red",
+                    ],
+                },
+            },
+        }
+        result = compute_all_colors(config, {"gini": 0.5, "psi": 0.05})
+        assert result["final"] == "green"
+
+        result2 = compute_all_colors(config, {"gini": 0.5, "psi": 0.30})
+        assert result2["final"] == "red"
+
